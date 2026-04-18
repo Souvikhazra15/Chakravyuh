@@ -1,0 +1,30 @@
+{
+  "models": {
+    "zscore": {
+      "precision": 0.44,
+      "recall": 0.008122362869198312,
+      "f1_score": 0.015950284826514758,
+      "roc_auc": 0.620745889168461,
+      "anomalies_detected": 350
+    },
+    "isolation_forest": {
+      "precision": 0.5672,
+      "recall": 0.14957805907172997,
+      "f1_score": 0.2367278797996661,
+      "roc_auc": 0.5985527470339076,
+      "anomalies_detected": 5000
+    }
+  },
+  "consensus_anomalies": 275,
+  "total_samples": 50000,
+  "features_used": [
+    "building_age",
+    "condition_score",
+    "crack_width_mm",
+    "toilet_functional_ratio",
+    "power_outage_hours_weekly",
+    "days_to_failure",
+    "priority_score",
+    "contractor_delay_days"
+  ]
+}
