@@ -1,38 +1,41 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+"""
+Prisma ORM Database Configuration
+Async SQLite connection with Prisma
+"""
+from prisma import Prisma
+from typing import AsyncGenerator
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/schoolai")
+# Initialize Prisma client
+db = Prisma(auto_register=True)
 
-if DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+async def connect_db():
+    """Connect to database"""
+    await db.connect()
+    print("✅ Prisma connected to SQLite (dev.db)")
 
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    future=True,
-    pool_pre_ping=True,
-)
-
-AsyncSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False, future=True
-)
-
-Base = declarative_base()
-
+async def disconnect_db():
+    """Disconnect from database"""
+    await db.disconnect()
+    print("🛑 Prisma disconnected from SQLite")
 
 async def get_db():
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    """Dependency for FastAPI to get database connection"""
+    return db
 
+# For backwards compatibility with existing imports
+Base = None  # Not needed with Prisma
 
 async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Initialize database schema"""
+    try:
+        # Test connection to database
+        await db.connect()
+        await db.disconnect()
+        print("✅ Database initialized via Prisma SQLite")
+    except Exception as e:
+        print(f"⚠️  Database initialization error: {e}")
+        print("   Make sure prisma migrate dev has been run and dev.db exists")

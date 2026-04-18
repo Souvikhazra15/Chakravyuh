@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from typing import List
+
 from ..database import get_db
-from ..models import Report
 from ..schemas import DEOQueueItem
 from ..utils import (
     calculate_risk_score,
@@ -11,29 +10,24 @@ from ..utils import (
     generate_prediction_reason,
     calculate_priority_score,
     get_last_n_reports,
+    hybrid_anomaly_detection,
+    categorize_status,
 )
 
 router = APIRouter(prefix="/api/v1/deo", tags=["deo"])
 
 
-@router.get("/queue", response_model=list[DEOQueueItem])
-async def get_priority_queue(
-    db: AsyncSession = Depends(get_db),
-):
+@router.get("/queue", response_model=List[DEOQueueItem])
+async def get_priority_queue(db = Depends(get_db)):
     """
     Get prioritized maintenance queue for District Education Officer.
-    
-    Returns schools sorted by priority score (risk_score * impact_weight).
-    Priority weights: girls_toilet=5, classroom=4, others=2
+    Combines ML anomaly detection with risk scoring.
+    Sorted by priority_score descending (highest priority first).
     """
-    result = await db.execute(
-        select(func.distinct(Report.school_id, Report.category))
-        .select_from(Report)
-        .order_by(Report.school_id, Report.category, Report.timestamp.desc())
+    # Fetch all reports from Prisma
+    all_reports = await db.report.find_many(
+        order_by={"timestamp": "desc"}
     )
-
-    result = await db.execute(select(Report))
-    all_reports = result.scalars().all()
 
     school_categories = {}
     for report in all_reports:
@@ -48,43 +42,68 @@ async def get_priority_queue(
         sorted_reports = sorted(reports, key=lambda x: x.timestamp, reverse=True)
         scores = get_last_n_reports(sorted_reports, 4)
 
-        if not scores:
+        if len(scores) < 2:
             continue
 
         risk_score = calculate_risk_score(scores)
         trend = calculate_trend(scores)
-        prediction, days = predict_failure(risk_score)
-        reason = generate_prediction_reason(risk_score, trend, scores)
-        priority_score = calculate_priority_score(risk_score, category)
 
-        if prediction != "Safe":
-            queue_items.append(
-                DEOQueueItem(
-                    school_id=school_id,
-                    category=category,
-                    prediction=prediction,
-                    reason=reason,
-                    priority_score=priority_score,
-                    risk_score=risk_score,
-                    days_until_failure=days,
-                )
-            )
+        # Hybrid ML Detection
+        anomaly_result = hybrid_anomaly_detection(
+            scores=scores, contamination=0.10, z_threshold=2.0
+        )
 
+        status = categorize_status(risk_score, anomaly_result["anomaly_flag"])
+        prediction, days_until_failure = predict_failure(risk_score)
+
+        priority_score = calculate_priority_score(
+            risk_score=risk_score,
+            category=category,
+            anomaly_flag=anomaly_result["anomaly_flag"],
+        )
+
+        reason = generate_prediction_reason(
+            risk_score=risk_score,
+            trend=trend,
+            scores=scores,
+            anomaly_flag=anomaly_result["anomaly_flag"],
+        )
+
+        last_condition = sorted_reports[0].condition if sorted_reports else "unknown"
+
+        queue_item = DEOQueueItem(
+            school_id=school_id,
+            category=category,
+            status=status,
+            risk_score=round(risk_score, 3),
+            prediction=prediction,
+            days_until_failure=days_until_failure,
+            priority_score=round(priority_score, 3),
+            anomaly_flag=anomaly_result["anomaly_flag"],
+            confidence=round(anomaly_result["hybrid_proba"], 3),
+            reason=reason,
+            last_condition=last_condition,
+        )
+        queue_items.append(queue_item)
+
+    # Sort by priority_score descending
     queue_items.sort(key=lambda x: x.priority_score, reverse=True)
 
     return queue_items
 
 
-@router.get("/queue/{school_id}", response_model=list[DEOQueueItem])
+@router.get("/queue/{school_id}", response_model=List[DEOQueueItem])
 async def get_priority_queue_for_school(
-    school_id: int,
-    db: AsyncSession = Depends(get_db),
+    school_id: int, db = Depends(get_db)
 ):
-    """Get priority queue filtered for a specific school."""
-    result = await db.execute(
-        select(Report).where(Report.school_id == school_id).order_by(Report.timestamp.desc())
+    """
+    Get priority queue items for a specific school.
+    Filtered and sorted by priority.
+    """
+    all_reports = await db.report.find_many(
+        where={"school_id": school_id},
+        order_by={"timestamp": "desc"}
     )
-    all_reports = result.scalars().all()
 
     school_categories = {}
     for report in all_reports:
@@ -99,27 +118,48 @@ async def get_priority_queue_for_school(
         sorted_reports = sorted(reports, key=lambda x: x.timestamp, reverse=True)
         scores = get_last_n_reports(sorted_reports, 4)
 
-        if not scores:
+        if len(scores) < 2:
             continue
 
         risk_score = calculate_risk_score(scores)
         trend = calculate_trend(scores)
-        prediction, days = predict_failure(risk_score)
-        reason = generate_prediction_reason(risk_score, trend, scores)
-        priority_score = calculate_priority_score(risk_score, category)
 
-        if prediction != "Safe":
-            queue_items.append(
-                DEOQueueItem(
-                    school_id=school_id,
-                    category=category,
-                    prediction=prediction,
-                    reason=reason,
-                    priority_score=priority_score,
-                    risk_score=risk_score,
-                    days_until_failure=days,
-                )
-            )
+        anomaly_result = hybrid_anomaly_detection(
+            scores=scores, contamination=0.10, z_threshold=2.0
+        )
+
+        status = categorize_status(risk_score, anomaly_result["anomaly_flag"])
+        prediction, days_until_failure = predict_failure(risk_score)
+
+        priority_score = calculate_priority_score(
+            risk_score=risk_score,
+            category=category,
+            anomaly_flag=anomaly_result["anomaly_flag"],
+        )
+
+        reason = generate_prediction_reason(
+            risk_score=risk_score,
+            trend=trend,
+            scores=scores,
+            anomaly_flag=anomaly_result["anomaly_flag"],
+        )
+
+        last_condition = sorted_reports[0].condition if sorted_reports else "unknown"
+
+        queue_item = DEOQueueItem(
+            school_id=school_id,
+            category=category,
+            status=status,
+            risk_score=round(risk_score, 3),
+            prediction=prediction,
+            days_until_failure=days_until_failure,
+            priority_score=round(priority_score, 3),
+            anomaly_flag=anomaly_result["anomaly_flag"],
+            confidence=round(anomaly_result["hybrid_proba"], 3),
+            reason=reason,
+            last_condition=last_condition,
+        )
+        queue_items.append(queue_item)
 
     queue_items.sort(key=lambda x: x.priority_score, reverse=True)
 

@@ -1,8 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from ..database import get_db
-from ..models import Report, Repair, WorkOrder
 from ..schemas import HistoryResponse
 
 router = APIRouter(prefix="/api/v1/history", tags=["history"])
@@ -11,19 +8,17 @@ router = APIRouter(prefix="/api/v1/history", tags=["history"])
 @router.get("/{school_id}", response_model=list[HistoryResponse])
 async def get_repair_history(
     school_id: int,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ):
     """Get complete repair history for a school."""
     categories = ["plumbing", "electrical", "structural"]
     history_data = []
 
     for category in categories:
-        result = await db.execute(
-            select(Repair)
-            .where(Repair.school_id == school_id, Repair.category == category)
-            .order_by(Repair.completed_at.desc())
+        repairs = await db.repair.find_many(
+            where={"school_id": school_id, "category": category},
+            order_by={"completed_at": "desc"},
         )
-        repairs = result.scalars().all()
 
         if not repairs:
             history_data.append(
@@ -64,15 +59,13 @@ async def get_repair_history(
 async def get_category_history(
     school_id: int,
     category: str,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ):
     """Get repair history for a specific category."""
-    result = await db.execute(
-        select(Repair)
-        .where(Repair.school_id == school_id, Repair.category == category.lower())
-        .order_by(Repair.completed_at.desc())
+    repairs = await db.repair.find_many(
+        where={"school_id": school_id, "category": category.lower()},
+        order_by={"completed_at": "desc"},
     )
-    repairs = result.scalars().all()
 
     if not repairs:
         return HistoryResponse(
@@ -104,25 +97,22 @@ async def get_category_history(
 
 @router.get("/", response_model=dict)
 async def get_system_stats(
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ):
     """Get overall system statistics."""
-    report_count = await db.execute(select(func.count(Report.id)))
-    total_reports = report_count.scalar() or 0
+    all_reports = await db.report.find_many()
+    total_reports = len(all_reports)
 
-    repair_count = await db.execute(select(func.count(Repair.id)))
-    total_repairs = repair_count.scalar() or 0
+    all_repairs = await db.repair.find_many()
+    total_repairs = len(all_repairs)
 
-    school_count = await db.execute(select(func.count(func.distinct(Report.school_id))))
-    total_schools = school_count.scalar() or 0
+    schools = set(report.school_id for report in all_reports) if all_reports else set()
+    total_schools = len(schools)
 
-    work_count = await db.execute(select(func.count(WorkOrder.id)))
-    total_work_orders = work_count.scalar() or 0
+    all_work_orders = await db.work_order.find_many()
+    total_work_orders = len(all_work_orders)
 
-    completed_count = await db.execute(
-        select(func.count(WorkOrder.id)).where(WorkOrder.status == "completed")
-    )
-    completed_orders = completed_count.scalar() or 0
+    completed_orders = len([w for w in all_work_orders if w.status == "completed"])
 
     return {
         "total_reports": total_reports,

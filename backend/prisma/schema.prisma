@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Report {
+  id              Int         @id @default(autoincrement())
+  school_id       Int
+  category        String
+  condition       String
+  condition_score Float
+  photo_url       String?
+  timestamp       DateTime    @default(now())
+  
+  workOrders      WorkOrder[]
+  
+  @@index([school_id])
+  @@index([category])
+  @@index([timestamp])
+  @@map("reports")
+}
+
+model WorkOrder {
+  id              Int       @id @default(autoincrement())
+  school_id       Int
+  category        String
+  assigned_to     String
+  status          String    @default("pending")
+  created_at      DateTime  @default(now())
+  completed_at    DateTime?
+  
+  report_id       Int?
+  report          Report?   @relation(fields: [report_id], references: [id], onDelete: Cascade)
+  
+  repairs         Repair[]
+  
+  @@index([school_id])
+  @@index([category])
+  @@index([created_at])
+  @@map("work_orders")
+}
+
+model Repair {
+  id              Int       @id @default(autoincrement())
+  work_order_id   Int
+  school_id       Int
+  category        String
+  photo_url       String
+  gps_location    String?
+  notes           String?
+  completed_at    DateTime  @default(now())
+  
+  work_order      WorkOrder @relation(fields: [work_order_id], references: [id], onDelete: Cascade)
+  
+  @@index([school_id])
+  @@index([category])
+  @@index([work_order_id])
+  @@map("repairs")
+}

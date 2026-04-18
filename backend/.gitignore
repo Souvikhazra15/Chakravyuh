@@ -51,3 +51,4 @@ dmypy.json
 .pyre/
 .env.production
 .env.staging
+node_modules

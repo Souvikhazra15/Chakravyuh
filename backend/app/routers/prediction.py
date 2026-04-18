@@ -1,8 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from ..database import get_db
-from ..models import Report
 from ..schemas import PredictionResponse
 from ..utils import (
     calculate_risk_score,
@@ -18,20 +15,17 @@ router = APIRouter(prefix="/api/v1/prediction", tags=["predictions"])
 @router.get("/{school_id}", response_model=list[PredictionResponse])
 async def get_predictions_for_school(
     school_id: int,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ):
     """Get failure predictions for all categories of a school."""
     categories = ["plumbing", "electrical", "structural"]
     predictions = []
 
     for category in categories:
-        result = await db.execute(
-            select(Report)
-            .where(Report.school_id == school_id, Report.category == category)
-            .order_by(Report.timestamp.desc())
-            .limit(4)
+        reports = await db.report.find_many(
+            where={"school_id": school_id, "category": category},
+            order_by={"timestamp": "desc"},
         )
-        reports = result.scalars().all()
 
         if not reports:
             predictions.append(
@@ -68,16 +62,13 @@ async def get_predictions_for_school(
 async def get_prediction_for_category(
     school_id: int,
     category: str,
-    db: AsyncSession = Depends(get_db),
+    db = Depends(get_db),
 ):
     """Get failure prediction for a specific category."""
-    result = await db.execute(
-        select(Report)
-        .where(Report.school_id == school_id, Report.category == category.lower())
-        .order_by(Report.timestamp.desc())
-        .limit(4)
+    reports = await db.report.find_many(
+        where={"school_id": school_id, "category": category.lower()},
+        order_by={"timestamp": "desc"},
     )
-    reports = result.scalars().all()
 
     if not reports:
         return PredictionResponse(

@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 from .database import init_db
-from .routers import report, risk, prediction, explain, deo, work, history
+from .routers import report, risk, prediction, explain, deo, work, history, pipeline
 
 load_dotenv()
 
@@ -47,6 +47,7 @@ app.include_router(explain.router)
 app.include_router(deo.router)
 app.include_router(work.router)
 app.include_router(history.router)
+app.include_router(pipeline.router)
 
 
 @app.get("/", tags=["health"])
