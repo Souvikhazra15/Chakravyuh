@@ -1,5 +1,5 @@
 """
-SchoolAI - ML Pipeline API Documentation
+Chakravyuh - ML Pipeline API Documentation
 AI-Powered Predictive Maintenance System for Government Schools
 
 ARCHITECTURE:

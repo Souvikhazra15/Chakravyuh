@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
 
-from .database import init_db
-from .routers import report, risk, prediction, explain, deo, work, history, pipeline
+from .database import init_db, close_db
+from .routers import report, risk, prediction, explain, deo, work, history, pipeline, auth
 
 load_dotenv()
 
@@ -17,12 +17,17 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting SchoolAI Backend...")
     try:
         await init_db()
-        print("✅ Database initialized")
+        print("✅ Database initialized and connected")
     except Exception as e:
-        print(f"⚠️  Database initialization skipped: {str(e)}")
+        print(f"⚠️  Database initialization error: {str(e)}")
         print("   Configure DATABASE_URL in .env and restart to enable database")
+        raise
     yield
     print("🛑 Shutting down SchoolAI Backend...")
+    try:
+        await close_db()
+    except Exception as e:
+        print(f"⚠️  Error during shutdown: {e}")
 
 
 app = FastAPI(
@@ -48,13 +53,14 @@ app.include_router(deo.router)
 app.include_router(work.router)
 app.include_router(history.router)
 app.include_router(pipeline.router)
+app.include_router(auth.router)
 
 
 @app.get("/", tags=["health"])
 async def root():
     """Health check and API info."""
     return {
-        "message": "SchoolAI API is running",
+        "message": "Chakravyuh API is running",
         "environment": ENVIRONMENT,
         "version": "1.0.0",
         "docs": "/docs",

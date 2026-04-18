@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# SchoolAI ML Pipeline - cURL API Examples
+# Chakravyuh ML Pipeline - cURL API Examples
 # Quick testing of all endpoints without running Python code
 
 BASE_URL="http://localhost:8000/api/v1"
 
 echo "=========================================="
-echo "SchoolAI ML Pipeline - API Examples"
+echo "Chakravyuh ML Pipeline - API Examples"
 echo "=========================================="
 echo ""
 

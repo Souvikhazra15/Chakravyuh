@@ -33,6 +33,26 @@ function startPythonBackend() {
   });
 }
 
+// CORS middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow requests from localhost on any port
+  if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token');
+  }
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 // Proxy all requests to Python backend
 app.use((req, res) => {
   const options = {
@@ -40,11 +60,23 @@ app.use((req, res) => {
     port: 8001,
     path: req.url,
     method: req.method,
-    headers: req.headers
+    headers: {
+      ...req.headers,
+      'host': 'localhost:8001'
+    }
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    // Ensure CORS headers are passed through
+    const headers = { ...proxyRes.headers };
+    const origin = req.headers.origin;
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      headers['Access-Control-Allow-Origin'] = origin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+      headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
+      headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token';
+    }
+    res.writeHead(proxyRes.statusCode, headers);
     proxyRes.pipe(res);
   });
 

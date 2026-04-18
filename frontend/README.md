@@ -1,4 +1,4 @@
-# SchoolAI Landing Page
+# Chakravyuh Landing Page
 
 AI-Powered Predictive Maintenance System for Government Schools
 

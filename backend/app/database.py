@@ -30,12 +30,21 @@ async def get_db():
 Base = None  # Not needed with Prisma
 
 async def init_db():
-    """Initialize database schema"""
+    """Initialize database schema and keep connection open"""
     try:
-        # Test connection to database
+        # Connect to database and keep it open for the app lifecycle
         await db.connect()
-        await db.disconnect()
         print("✅ Database initialized via Prisma SQLite")
+        print("✅ Prisma client connected and ready")
     except Exception as e:
         print(f"⚠️  Database initialization error: {e}")
         print("   Make sure prisma migrate dev has been run and dev.db exists")
+        raise
+
+async def close_db():
+    """Close database connection on app shutdown"""
+    try:
+        await db.disconnect()
+        print("🛑 Prisma disconnected from SQLite")
+    except Exception as e:
+        print(f"⚠️  Error disconnecting database: {e}")

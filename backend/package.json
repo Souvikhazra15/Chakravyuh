@@ -1,7 +1,7 @@
 {
-  "name": "schoolai-prisma",
+  "name": "chakravyuh-prisma",
   "version": "1.0.0",
-  "description": "Prisma setup for SchoolAI",
+  "description": "Prisma setup for Chakravyuh",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
