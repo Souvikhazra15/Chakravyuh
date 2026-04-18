@@ -24,6 +24,8 @@ const DashboardPrincipal = () => {
   const [analysisSummary, setAnalysisSummary] = useState(null);
   const [analysisCompleted, setAnalysisCompleted] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
+  const [submittedFiles, setSubmittedFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,10 +37,11 @@ const DashboardPrincipal = () => {
         // Use school_id from user context or default to 1
         const schoolId = user?.school_id || 1;
 
-        const [submissionsRes, predictionsRes, workOrdersRes] = await Promise.all([
+        const [submissionsRes, predictionsRes, workOrdersRes, filesRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/principal/submissions`, { headers }).catch(() => null),
           fetch(`${API_BASE}/api/v1/prediction?school_id=${schoolId}`, { headers }).catch(() => null),
           fetch(`${API_BASE}/api/v1/work-orders`, { headers }).catch(() => null),
+          fetch(`${API_BASE}/api/v1/peon/submitted-files`, { headers }).catch(() => null),
         ]);
 
         if (submissionsRes?.ok) {
@@ -79,11 +82,19 @@ const DashboardPrincipal = () => {
         } else {
           setWorkOrders([]);
         }
+
+        if (filesRes?.ok) {
+          const filesData = await filesRes.json();
+          setSubmittedFiles(filesData.files || []);
+        } else {
+          setSubmittedFiles([]);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setSubmissions([]);
         setPredictions([]);
         setWorkOrders([]);
+        setSubmittedFiles([]);
       }
     };
 
@@ -359,6 +370,53 @@ const DashboardPrincipal = () => {
     }
   };
 
+  const handleLoadSubmittedFile = async (filename) => {
+    setLoadingFiles(true);
+    setAnalysisError(null);
+    setAnalysisMessage(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/peon/submitted-files/${filename}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load file: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.file_type === 'csv' && data.rows) {
+        setCsvData(data.rows);
+        
+        // Show preview
+        const preview = data.rows.slice(0, 3).map((row, idx) => 
+          Object.keys(row).map(key => row[key])
+        );
+        setCsvPreview(preview);
+        
+        setUploadStatus(`✅ File loaded: ${data.row_count} records ready for analysis`);
+        setAnalysisCompleted(false);
+        setPredictions([]);
+        setAnalysisSummary(null);
+        setAnalysisMessage(`📁 Loaded: ${filename}`);
+        
+        setTimeout(() => {
+          setAnalysisMessage(null);
+        }, 3000);
+      } else if (data.file_type === 'pdf') {
+        setAnalysisError('PDF files require manual processing. Please export to CSV format.');
+      }
+    } catch (error) {
+      console.error('Error loading file:', error);
+      setAnalysisError(`Error loading file: ${error.message}`);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
   const filteredWorkOrders = priorityFilter === 'All' 
     ? workOrders 
     : workOrders.filter(wo => wo.priority_level === priorityFilter);
@@ -521,6 +579,78 @@ const DashboardPrincipal = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Submitted Files Section */}
+        <div className={`rounded-lg shadow-lg p-6 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <h2 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            📁 Files Submitted by Peons
+          </h2>
+          <p className={`mb-6 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Select a file submitted by peons to load it for analysis
+          </p>
+          
+          {submittedFiles.length === 0 ? (
+            <div className={`p-8 text-center rounded-lg border-2 border-dashed ${
+              isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-300 bg-gray-50'
+            }`}>
+              <Upload className={`mx-auto mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} size={40} />
+              <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                No files submitted yet. Peons can upload files from their dashboard.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {submittedFiles.map((file, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-lg border-2 transition hover:shadow-lg ${
+                    isDark
+                      ? 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                      : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className={`text-2xl ${file.file_type === 'csv' ? '📊' : '📄'}`}></span>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-semibold truncate ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                          {file.original_name}
+                        </p>
+                        <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                          {file.file_type.toUpperCase()} • {(file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleLoadSubmittedFile(file.filename)}
+                    disabled={loadingFiles}
+                    className={`w-full py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                      loadingFiles
+                        ? isDark ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : isDark
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    {loadingFiles ? (
+                      <>
+                        <div className="animate-spin">⏳</div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={16} />
+                        Load & Analyze
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Predictions with Verification Status */}

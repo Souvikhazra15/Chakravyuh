@@ -12,7 +12,9 @@ TEST_USERS = [
     {"email": "peon@test.com", "password": "123456", "role": "peon", "name": "Peon User"},
     {"email": "principal@test.com", "password": "123456", "role": "principal", "name": "Principal User"},
     {"email": "deo@test.com", "password": "123456", "role": "deo", "name": "DEO User"},
-    {"email": "contractor@test.com", "password": "123456", "role": "contractor", "name": "Contractor User"},
+    {"email": "contractor1@test.com", "password": "123456", "role": "contractor", "name": "Suresh Kumar"},
+    {"email": "contractor2@test.com", "password": "123456", "role": "contractor", "name": "Ramesh Patel"},
+    {"email": "contractor3@test.com", "password": "123456", "role": "contractor", "name": "Rajendra Singh"},
 ]
 
 async def setup_users():

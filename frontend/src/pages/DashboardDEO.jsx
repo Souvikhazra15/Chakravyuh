@@ -242,15 +242,42 @@ const DashboardDEO = () => {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/deo/queue`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`
+        // Fetch both queue and approved submissions
+        const [queueResponse, approvedResponse] = await Promise.all([
+          fetch(`${API_BASE}/api/v1/deo/queue`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('access_token')}`
+            }
+          }).catch(() => null),
+          fetch(`${API_BASE}/api/v1/deo/approved-submissions`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('access_token')}`
+            }
+          }).catch(() => null)
+        ]);
+
+        let allAlerts = [];
+
+        // Get queue data
+        if (queueResponse?.ok) {
+          const data = await queueResponse.json();
+          const queueData = Array.isArray(data) ? data : (data.queue || []);
+          if (queueData.length > 0) {
+            allAlerts = allAlerts.concat(queueData);
           }
-        });
-        const data = await response.json();
-        const queueData = Array.isArray(data) ? data : (data.queue || []);
-        if (queueData.length > 0) {
-          const normalized = queueData.map((item) => ({
+        }
+
+        // Get approved submissions
+        if (approvedResponse?.ok) {
+          const data = await approvedResponse.json();
+          const approvedData = Array.isArray(data) ? data : [];
+          if (approvedData.length > 0) {
+            allAlerts = allAlerts.concat(approvedData);
+          }
+        }
+
+        if (allAlerts.length > 0) {
+          const normalized = allAlerts.map((item) => ({
             ...item,
             priority_level: getPriorityLevel(item),
             priority_score: Number(item.priority_score || 0),
@@ -261,6 +288,7 @@ const DashboardDEO = () => {
           setAlerts(SAMPLE_ALERTS);
         }
       } catch (error) {
+        console.error('Error fetching alerts:', error);
         setAlerts(SAMPLE_ALERTS);
       } finally {
         setLoading(false);

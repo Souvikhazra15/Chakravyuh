@@ -24,6 +24,8 @@ const DashboardContractor = () => {
     const fetchWorkOrders = async () => {
       try {
         const contractorName = user?.name || '';
+        if (!contractorName) return;
+        
         const response = await fetch(`${API_BASE}/api/v1/work-orders?contractor=${encodeURIComponent(contractorName)}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -40,6 +42,10 @@ const DashboardContractor = () => {
     };
 
     fetchWorkOrders();
+    
+    // Auto-refresh work orders every 10 seconds
+    const intervalId = setInterval(fetchWorkOrders, 10000);
+    return () => clearInterval(intervalId);
   }, [API_BASE, user?.name]);
 
   const getStatusColor = (status) => {
@@ -184,15 +190,57 @@ const DashboardContractor = () => {
           {/* Work Orders List */}
           <div className={`lg:col-span-2 rounded-lg shadow-lg p-6 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                Assigned Work Orders
-              </h2>
-              {successMessage && (
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDark ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'}`}>
-                  {successMessage} ✅
-                </span>
-              )}
+              <div>
+                <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  Assigned Work Orders
+                </h2>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                  Filtering by: <strong>{user?.name || 'Unknown'}</strong>
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const contractorName = user?.name || '';
+                    fetch(`${API_BASE}/api/v1/work-orders?contractor=${encodeURIComponent(contractorName)}`, {
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                      }
+                    })
+                      .then(r => r.json())
+                      .then(data => {
+                        console.log(`Work orders for "${contractorName}":`, data);
+                        alert(`FILTERED by "${contractorName}":\n${JSON.stringify(data, null, 2)}`);
+                      });
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-semibold ${isDark ? 'bg-blue-700 text-blue-100 hover:bg-blue-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                >
+                  My Orders
+                </button>
+                <button
+                  onClick={() => {
+                    fetch(`${API_BASE}/api/v1/work-orders`, {
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                      }
+                    })
+                      .then(r => r.json())
+                      .then(data => {
+                        console.log('ALL work orders in system:', data);
+                        alert(`ALL WORK ORDERS (${data.length || 0} total):\n${JSON.stringify(data, null, 2)}`);
+                      });
+                  }}
+                  className={`px-3 py-1 rounded text-xs font-semibold ${isDark ? 'bg-purple-700 text-purple-100 hover:bg-purple-600' : 'bg-purple-500 text-white hover:bg-purple-600'}`}
+                >
+                  All Orders (Debug)
+                </button>
+              </div>
             </div>
+            {successMessage && (
+              <span className={`inline-block mb-4 rounded-full px-3 py-1 text-xs font-semibold ${isDark ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'}`}>
+                {successMessage} ✅
+              </span>
+            )}
 
             {loading ? (
               <div className="flex justify-center py-12">
