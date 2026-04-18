@@ -73,6 +73,7 @@ model User {
   school_id       Int?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
+  last_login      DateTime?
   
   @@index([email])
   @@index([role])

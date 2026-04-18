@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ArrowRight, CheckCircle, Zap, Brain, AlertCircle, TrendingUp, Users } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { isDark } = useTheme();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -168,6 +170,7 @@ export default function LandingPage() {
             ].map((feature, idx) => (
               <div
                 key={idx}
+                onClick={() => navigate('/architecture')}
                 className={`p-8 rounded-xl border transition transform hover:-translate-y-2 cursor-pointer ${isDark ? 'bg-gray-800 border-gray-700 hover:border-blue-500 hover:shadow-xl' : 'bg-white border-gray-200 hover:border-blue-400 hover:shadow-xl'}`}
               >
                 <div className="text-blue-600 mb-4">{feature.icon}</div>

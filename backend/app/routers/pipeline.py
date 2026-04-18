@@ -227,11 +227,22 @@ class CSVPredictionResponse(BaseModel):
     priority: str
     condition_score: float
     trend_slope: float
+    priority_score: float = 0.0  # NEW: Priority ranking score
+    priority_level: str = "Medium"  # NEW: Priority level (Critical/High/Medium/Low)
+
+class AnomalyDetectionMetrics(BaseModel):
+    timestamp: List[int]  # sequence of indices
+    condition_score: List[float]  # condition over time
+    zscore_anomaly: List[float]  # Z-score anomaly scores
+    isolation_forest_score: List[float]  # Isolation Forest scores
+    hybrid_score: List[float]  # Combined hybrid scores
+    is_anomaly: List[bool]  # Whether detected as anomaly
 
 class CSVPipelineResult(BaseModel):
     stats: Dict
     predictions: List[CSVPredictionResponse]
     explanations: List[str]
+    anomaly_metrics: Dict[str, AnomalyDetectionMetrics] = {}
 
 
 def normalize_condition_score(raw_condition: str) -> float:
@@ -244,6 +255,61 @@ def normalize_condition_score(raw_condition: str) -> float:
         "critical": 0.95
     }
     return condition_map.get(raw_condition.lower(), 0.5)
+
+
+def calculate_priority_level(category: str, risk_score: float) -> tuple:
+    """
+    Calculate priority level based on:
+    1. Risk severity (risk_score: 0-1 scale)
+    2. Student impact (category-based weights)
+    
+    Impact Weights:
+    - Girls' toilet: 5.0 (highest - safety/dignity)
+    - Structural: 5.0 (highest - safety critical)
+    - Electrical: 4.5 (very high - electrical hazard)
+    - Classroom: 4.0 (medium - affects learning)
+    - Plumbing: 3.5 (medium - health hazard)
+    - Other: 2.0 (lower - operational)
+    
+    Returns: (priority_score, priority_level)
+    """
+    impact_weights = {
+        'girls_toilet': 5.0,
+        'classroom': 4.0,
+        'electrical': 4.5,
+        'plumbing': 3.5,
+        'structural': 5.0,
+        'other': 2.0
+    }
+    
+    category_lower = str(category).lower().strip()
+    if 'girl' in category_lower or 'toilet' in category_lower:
+        weight = impact_weights['girls_toilet']
+    elif 'class' in category_lower or 'room' in category_lower:
+        weight = impact_weights['classroom']
+    elif 'electrical' in category_lower:
+        weight = impact_weights['electrical']
+    elif 'plumbing' in category_lower:
+        weight = impact_weights['plumbing']
+    elif 'structural' in category_lower:
+        weight = impact_weights['structural']
+    else:
+        weight = impact_weights['other']
+    
+    # Calculate priority score (0-5 scale)
+    priority_score = float(risk_score * weight)
+    
+    # Assign priority level based on thresholds
+    if priority_score >= 3.5:
+        priority_level = 'Critical'
+    elif priority_score >= 2.5:
+        priority_level = 'High'
+    elif priority_score >= 1.5:
+        priority_level = 'Medium'
+    else:
+        priority_level = 'Low'
+    
+    return priority_score, priority_level
 
 
 def calculate_csv_features(records: List[Dict]) -> Dict:
@@ -292,10 +358,68 @@ def calculate_csv_features(records: List[Dict]) -> Dict:
             'trend_slope': trend_slope,
             'deterioration_rate': deterioration_rate,
             'num_reports': len(scores),
-            'all_scores': scores
+            'all_scores': scores,  # Keep all scores for time-series
+            'indices': list(range(len(scores)))
         }
     
     return features
+
+
+def calculate_anomaly_timeseries(features: Dict) -> Dict:
+    """Calculate time-series anomaly scores for each school-category pair."""
+    anomaly_metrics = {}
+    
+    for key, feature_data in features.items():
+        school_id, category = key
+        scores = feature_data['all_scores']
+        indices = feature_data['indices']
+        
+        # Z-score anomaly for each point
+        if len(scores) > 1 and np.std(scores) > 0:
+            zscore_anomalies = [np.abs((s - np.mean(scores)) / np.std(scores)) for s in scores]
+        else:
+            zscore_anomalies = [0.0] * len(scores)
+        
+        # Isolation Forest on sliding windows
+        iforest_scores_ts = []
+        if len(scores) >= 3:
+            for i in range(max(0, len(scores) - 5), len(scores)):
+                window = scores[max(0, i-4):i+1]
+                X_window = np.array(window).reshape(-1, 1)
+                try:
+                    scaler = StandardScaler()
+                    X_scaled = scaler.fit_transform(X_window)
+                    clf = IsolationForest(contamination=0.2, random_state=42)
+                    clf.fit(X_scaled)
+                    score = float(-clf.score_samples(X_scaled[-1:].reshape(1, -1))[0])
+                    iforest_scores_ts.append(max(0, min(1, score)))
+                except:
+                    iforest_scores_ts.append(0.0)
+            
+            # Pad with zeros for earlier points
+            iforest_scores_ts = [0.0] * (len(scores) - len(iforest_scores_ts)) + iforest_scores_ts
+        else:
+            iforest_scores_ts = [0.0] * len(scores)
+        
+        # Hybrid score (40% Z-score + 60% Isolation Forest)
+        hybrid_scores = [
+            0.4 * z + 0.6 * i 
+            for z, i in zip(zscore_anomalies, iforest_scores_ts)
+        ]
+        
+        # Determine anomalies (threshold: > 0.5)
+        is_anomaly = [h > 0.5 for h in hybrid_scores]
+        
+        anomaly_metrics[f"{school_id}_{category}"] = {
+            'timestamp': indices,
+            'condition_score': scores,
+            'zscore_anomaly': [float(z) for z in zscore_anomalies],
+            'isolation_forest_score': [float(i) for i in iforest_scores_ts],
+            'hybrid_score': [float(h) for h in hybrid_scores],
+            'is_anomaly': is_anomaly
+        }
+    
+    return anomaly_metrics
 
 
 def hybrid_csv_anomaly_detection(features: Dict) -> Dict:
@@ -340,14 +464,19 @@ def hybrid_csv_anomaly_detection(features: Dict) -> Dict:
     X_scaled = scaler.fit_transform(X)
     
     clf = IsolationForest(contamination=0.2, random_state=42)
-    anomaly_scores = clf.score_samples(X_scaled)
+    # Use fit_predict to get the predictions (-1 for anomalies, 1 for normal)
+    predictions = clf.fit_predict(X_scaled)
+    # Get anomaly scores (lower = more anomalous)
+    anomaly_scores_raw = clf.score_samples(X_scaled)
     
-    min_score = anomaly_scores.min()
-    max_score = anomaly_scores.max()
+    # Normalize anomaly scores to 0-1 range
+    min_score = anomaly_scores_raw.min()
+    max_score = anomaly_scores_raw.max()
     if max_score > min_score:
-        normalized = (anomaly_scores - min_score) / (max_score - min_score)
+        # Invert so that more anomalous = higher score
+        normalized = (max_score - anomaly_scores_raw) / (max_score - min_score)
     else:
-        normalized = np.zeros_like(anomaly_scores)
+        normalized = np.zeros_like(anomaly_scores_raw)
     
     iforest_scores = {}
     for (key, _), score in zip(features.items(), normalized):
@@ -401,16 +530,37 @@ async def process_csv_pipeline(file: UploadFile = File(...)):
     SCHOOL_002,electrical,poor,2026-04-18
     """
     try:
+        # Validate file type
+        if not file.filename.endswith('.csv'):
+            raise HTTPException(status_code=400, detail="File must be a CSV file")
+        
         # Read file
         contents = await file.read()
-        csv_content = contents.decode('utf-8')
+        if not contents:
+            raise HTTPException(status_code=400, detail="CSV file is empty")
+        
+        # Decode with error handling
+        try:
+            csv_content = contents.decode('utf-8')
+        except UnicodeDecodeError:
+            csv_content = contents.decode('latin-1')
         
         # Parse CSV
-        reader = csv.DictReader(io.StringIO(csv_content))
-        records = list(reader)
+        try:
+            reader = csv.DictReader(io.StringIO(csv_content))
+            records = list(reader)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid CSV format: {str(e)}")
         
         if not records:
-            raise HTTPException(status_code=400, detail="CSV file is empty")
+            raise HTTPException(status_code=400, detail="CSV file contains no data rows")
+        
+        # Validate required columns
+        required_cols = ['school_id', 'category', 'condition']
+        first_record = records[0]
+        missing_cols = [col for col in required_cols if col not in first_record]
+        if missing_cols:
+            raise HTTPException(status_code=400, detail=f"Missing columns: {', '.join(missing_cols)}")
         
         # Stage 1: Data Processing
         print(f"[STAGE 1] Processing {len(records)} records...")
@@ -419,9 +569,16 @@ async def process_csv_pipeline(file: UploadFile = File(...)):
         print("[STAGE 2] Engineering features (trends, patterns)...")
         features = calculate_csv_features(records)
         
+        if not features:
+            raise HTTPException(status_code=400, detail="No valid data to process")
+        
         # Stage 3: Hybrid Anomaly Detection
         print("[STAGE 3] Hybrid anomaly detection (Z-score + Isolation Forest)...")
         anomaly_scores = hybrid_csv_anomaly_detection(features)
+        
+        # Calculate time-series anomaly metrics
+        print("[STAGE 3B] Calculating time-series anomaly metrics...")
+        anomaly_metrics = calculate_anomaly_timeseries(features)
         
         # Stage 4-5: Prediction & Explanation
         print("[STAGE 4-5] Generating predictions...")
@@ -435,6 +592,9 @@ async def process_csv_pipeline(file: UploadFile = File(...)):
                 feature_data, anomaly_score
             )
             
+            # Calculate priority level based on risk score and student impact
+            priority_score, priority_level = calculate_priority_level(category, risk_score)
+            
             predictions.append(CSVPredictionResponse(
                 school_id=school_id,
                 category=category,
@@ -442,27 +602,31 @@ async def process_csv_pipeline(file: UploadFile = File(...)):
                 days_to_failure=days_to_failure,
                 priority=priority,
                 condition_score=feature_data['current_score'],
-                trend_slope=feature_data['trend_slope']
+                trend_slope=feature_data['trend_slope'],
+                priority_score=priority_score,
+                priority_level=priority_level
             ))
         
-        # Sort by priority
-        priority_order = {"critical": 0, "high": 1, "medium": 2}
+        # Sort by priority level and risk score (descending)
+        priority_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
         predictions.sort(
-            key=lambda p: (priority_order.get(p.priority, 3), -p.risk_score)
+            key=lambda p: (priority_order.get(p.priority_level, 4), -p.priority_score, -p.risk_score)
         )
         
         # Generate explanations
         explanations = []
         for pred in predictions:
-            if pred.priority == "critical":
+            if pred.priority_level == "Critical":
                 explanations.append(
                     f"🔴 {pred.school_id} - {pred.category.title()}: "
-                    f"Critical risk detected. Predict failure in {pred.days_to_failure} days."
+                    f"CRITICAL RISK (Score: {pred.priority_score:.1f}). "
+                    f"Predict failure in {pred.days_to_failure} days. Immediate action required."
                 )
-            elif pred.priority == "high":
+            elif pred.priority_level == "High":
                 explanations.append(
                     f"⚠️ {pred.school_id} - {pred.category.title()}: "
-                    f"High priority. Deterioration accelerating. Action recommended within {pred.days_to_failure} days."
+                    f"HIGH PRIORITY (Score: {pred.priority_score:.1f}). "
+                    f"Action recommended within {pred.days_to_failure} days."
                 )
         
         if not explanations:
@@ -473,17 +637,25 @@ async def process_csv_pipeline(file: UploadFile = File(...)):
             stats={
                 "processed_records": len(records),
                 "school_category_combinations": len(features),
-                "critical_issues": sum(1 for p in predictions if p.priority == "critical"),
-                "high_priority_issues": sum(1 for p in predictions if p.priority == "high"),
+                "critical_issues": sum(1 for p in predictions if p.priority_level == "Critical"),
+                "high_priority_issues": sum(1 for p in predictions if p.priority_level == "High"),
+                "medium_priority_issues": sum(1 for p in predictions if p.priority_level == "Medium"),
+                "low_priority_issues": sum(1 for p in predictions if p.priority_level == "Low"),
                 "processing_timestamp": datetime.now().isoformat(),
             },
             predictions=predictions,
-            explanations=explanations
+            explanations=explanations,
+            anomaly_metrics=anomaly_metrics
         )
         
-        print(f"✓ Pipeline complete!")
+        print(f"✓ Pipeline complete! {len(predictions)} predictions generated")
         return result
         
+    except HTTPException as he:
+        print(f"HTTPException: {he.detail}")
+        raise he
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"❌ Error processing CSV: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Error processing CSV: {str(e)}")

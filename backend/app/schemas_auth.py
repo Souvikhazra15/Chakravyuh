@@ -16,6 +16,13 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    """Schema for updating user information"""
+    name: Optional[str] = None
+    role: Optional[str] = None
+    school_id: Optional[int] = None
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -31,6 +38,7 @@ class UserResponse(BaseModel):
     role: str
     school_id: Optional[int]
     created_at: datetime
+    last_login: Optional[datetime] = None
 
     class Config:
         from_attributes = True
