@@ -1,7 +1,5 @@
-from typing import List, Dict, Tuple
-from datetime import datetime, timedelta
+from typing import List, Dict
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
 from .password_handler import hash_password, verify_password
 from .jwt_handler import create_access_token, verify_token, decode_token
@@ -95,6 +93,45 @@ def calculate_priority_score(
         base_score *= 1.3
     
     return base_score
+
+
+def calculate_priority_level(category: str, risk_score: float) -> tuple:
+    """Calculate priority score and level from category and risk score."""
+    impact_weights = {
+        "girls_toilet": 5.0,
+        "structural": 5.0,
+        "electrical": 4.5,
+        "classroom": 4.0,
+        "plumbing": 3.5,
+        "other": 2.0,
+    }
+
+    category_lower = str(category).lower().strip()
+    if "girl" in category_lower or "toilet" in category_lower:
+        weight = impact_weights["girls_toilet"]
+    elif "class" in category_lower or "room" in category_lower:
+        weight = impact_weights["classroom"]
+    elif "electrical" in category_lower:
+        weight = impact_weights["electrical"]
+    elif "plumbing" in category_lower:
+        weight = impact_weights["plumbing"]
+    elif "structural" in category_lower:
+        weight = impact_weights["structural"]
+    else:
+        weight = impact_weights["other"]
+
+    priority_score = risk_score * weight
+
+    if priority_score >= 3.5:
+        priority_level = "Critical"
+    elif priority_score >= 2.5:
+        priority_level = "High"
+    elif priority_score >= 1.5:
+        priority_level = "Medium"
+    else:
+        priority_level = "Low"
+
+    return priority_score, priority_level
 
 
 def get_last_n_reports(all_reports: List, n: int = 4) -> List[float]:
@@ -260,6 +297,7 @@ __all__ = [
     "predict_failure",
     "generate_prediction_reason",
     "calculate_priority_score",
+    "calculate_priority_level",
     "get_last_n_reports",
     "safe_average",
     "ZScoreDetector",

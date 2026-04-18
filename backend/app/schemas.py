@@ -121,48 +121,51 @@ class BulkPipelineResponse(BaseModel):
         }
 
 
+class WorkOrderAssignRequest(BaseModel):
+    school_id: str
+    category: str
+    priority_score: Optional[float] = None
+    priority_level: Optional[str] = None
+    assigned_contractor: str
+    issue: Optional[str] = None
+
+
 class WorkOrderCreate(BaseModel):
+    school_id: str
+    category: str
+    assigned_contractor: str
+    priority_score: Optional[float] = None
+    priority_level: Optional[str] = None
+    issue: Optional[str] = None
+
+
+class WorkOrderResponse(BaseModel):
+    id: int
     school_id: int
     category: str
-    assigned_to: str
-
-
-class WorkOrderResponse(WorkOrderCreate):
-    id: int
+    issue: Optional[str] = None
+    priority_score: Optional[float] = None
+    priority_level: Optional[str] = None
+    assigned_contractor: str
     status: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class CompleteWorkRequest(BaseModel):
-    work_id: int
-    photo_url: str
+    photo_url: Optional[str] = None
     gps_location: Optional[str] = None
-    notes: Optional[str] = None
-    risk_score: float
-    days_until_failure: Optional[int]
-
-
-class WorkOrderCreate(BaseModel):
-    school_id: int
-    category: str
-    assigned_to: str
-
-
-class WorkOrderResponse(WorkOrderCreate):
-    id: int
-    status: str
     created_at: datetime
+    completed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
+class WorkOrderStatusResponse(BaseModel):
+    id: int
+    status: str
+    completed_at: Optional[datetime] = None
+
+
 class CompleteWorkRequest(BaseModel):
     work_id: int
-    photo_url: str
+    photo_url: Optional[str] = None
     gps_location: Optional[str] = None
     notes: Optional[str] = None
 

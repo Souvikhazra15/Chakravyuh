@@ -3,8 +3,6 @@ Prisma ORM Database Configuration
 Async SQLite connection with Prisma
 """
 from prisma import Prisma
-from typing import AsyncGenerator
-import os
 from dotenv import load_dotenv
 
 load_dotenv()

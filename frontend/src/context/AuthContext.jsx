@@ -9,13 +9,22 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const normalizeRole = (role) => String(role || '').toLowerCase();
+
   useEffect(() => {
     const storedToken = localStorage.getItem('access_token');
     const storedUser = localStorage.getItem('user');
     
-    if (storedToken && storedUser) {
+    if (storedToken) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    }
+
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser({
+        ...parsedUser,
+        role: normalizeRole(parsedUser.role)
+      });
     }
     
     setLoading(false);
@@ -23,7 +32,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     try {
-      console.log('Attempting login to:', `${API_URL}/api/v1/auth/login`);
       const response = await fetch(`${API_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,7 +40,6 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Login error:', response.status, errorText);
         throw new Error(`Login failed: ${response.status} ${response.statusText}`);
       }
 
@@ -42,7 +49,7 @@ export const AuthProvider = ({ children }) => {
         id: data.user_id,
         name: data.name,
         email: email,
-        role: data.role,
+        role: normalizeRole(data.role),
       });
 
       localStorage.setItem('access_token', data.access_token);
@@ -50,18 +57,17 @@ export const AuthProvider = ({ children }) => {
         id: data.user_id,
         name: data.name,
         email: email,
-        role: data.role,
+        role: normalizeRole(data.role),
       }));
 
       return data;
     } catch (error) {
-      console.error('Login fetch error:', error);
       if (error instanceof TypeError) {
         throw new Error(`Cannot connect to backend at ${API_URL}. Please ensure the backend is running.`);
       }
       throw error;
     }
-  }, []);
+  }, [API_URL]);
 
   const logout = useCallback(() => {
     setUser(null);

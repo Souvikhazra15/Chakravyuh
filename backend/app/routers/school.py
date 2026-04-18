@@ -1,14 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from ..database import get_db
-from ..schemas import RiskData
 from ..utils import (
     calculate_risk_score,
-    calculate_trend,
     predict_failure,
-    generate_prediction_reason,
-    calculate_priority_score,
-    get_last_n_reports,
+    calculate_priority_level,
 )
 from pydantic import BaseModel
 
@@ -23,7 +19,7 @@ class IssueResponse(BaseModel):
     risk_score: float
     priority_level: str
     priority_score: float
-    days_to_failure: int
+    days_to_failure: Optional[int]
     reported_date: str
     status: str = "pending"
     
@@ -43,11 +39,13 @@ async def get_school_issues(
     Returns risk-prioritized list of issues/maintenance items.
     """
     
-    # For now, return empty list - to be populated from reports and risk data
-    # This will be enhanced once we integrate with reports
-    issues = []
-    
-    return issues
+    if school_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="school_id query parameter is required",
+        )
+
+    return await _build_issues_for_school(school_id, db)
 
 
 @router.get("/issues/{school_id}", response_model=List[IssueResponse])
@@ -65,80 +63,11 @@ async def get_school_issues_by_id(
     """
     
     try:
-        categories = ["plumbing", "electrical", "structural", "girls_toilet", "boys_toilet", "classroom"]
-        
-        issues = []
-        
-        for category in categories:
-            # Get last 4 reports for this category
-            reports = await get_last_n_reports(school_id, category, 4, db)
-            
-            if not reports:
-                continue
-            
-            # Calculate risk score
-            risk_score = calculate_risk_score(
-                [r.condition_score for r in reports]
-            )
-            
-            # Calculate trend
-            trend = calculate_trend(
-                [r.condition_score for r in reports]
-            )
-            
-            # Predict failure
-            days_to_failure = predict_failure(
-                [r.condition_score for r in reports]
-            )
-            
-            # Generate reason
-            reason = generate_prediction_reason(risk_score, days_to_failure, trend)
-            
-            # Calculate priority score (0.0 to 5.0)
-            priority_score = calculate_priority_score(risk_score, category, days_to_failure)
-            
-            # Determine priority level
-            if priority_score >= 3.5:
-                priority_level = "Critical"
-            elif priority_score >= 2.5:
-                priority_level = "High"
-            elif priority_score >= 1.5:
-                priority_level = "Medium"
-            else:
-                priority_level = "Low"
-            
-            # Get latest report's condition
-            latest_report = reports[0]
-            condition_map = {0.0: "Good", 1.0: "Minor Issue", 3.0: "Major Issue"}
-            condition = condition_map.get(latest_report.condition_score, "Unknown")
-            
-            # Get reported date
-            reported_date = latest_report.timestamp.isoformat().split('T')[0] if latest_report.timestamp else "Unknown"
-            
-            issue = IssueResponse(
-                id=latest_report.id,
-                category=category.title().replace('_', ' '),
-                condition=condition,
-                risk_score=round(risk_score, 2),
-                priority_level=priority_level,
-                priority_score=round(priority_score, 2),
-                days_to_failure=max(1, int(days_to_failure)),
-                reported_date=reported_date,
-                status="pending"
-            )
-            
-            issues.append(issue)
-        
-        # Sort by priority score (highest first)
-        issues.sort(key=lambda x: x.priority_score, reverse=True)
-        
-        return issues
-        
+        return await _build_issues_for_school(school_id, db)
     except Exception as e:
-        print(f"Error getting school issues: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching issues: {str(e)}"
+            detail=f"Error fetching issues: {str(e)}",
         )
 
 
@@ -172,8 +101,61 @@ async def get_school_stats(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=str(e),
         )
+
+
+async def _build_issues_for_school(school_id: int, db) -> List[IssueResponse]:
+    reports = await db.report.find_many(
+        where={"school_id": school_id},
+        order_by={"timestamp": "desc"},
+    )
+
+    if not reports:
+        return []
+
+    grouped = {}
+    for report in reports:
+        grouped.setdefault(report.category, []).append(report)
+
+    issues: List[IssueResponse] = []
+    for category, category_reports in grouped.items():
+        recent_reports = sorted(
+            category_reports, key=lambda r: r.timestamp, reverse=True
+        )[:4]
+
+        scores = [r.condition_score for r in recent_reports]
+        if len(scores) < 1:
+            continue
+
+        risk_score = calculate_risk_score(scores)
+        _, days_until_failure = predict_failure(risk_score)
+        priority_score, priority_level = calculate_priority_level(category, risk_score)
+
+        latest_report = recent_reports[0]
+        condition = latest_report.condition or "Unknown"
+        reported_date = (
+            latest_report.timestamp.date().isoformat()
+            if latest_report.timestamp
+            else "Unknown"
+        )
+
+        issues.append(
+            IssueResponse(
+                id=latest_report.id,
+                category=category.title().replace("_", " "),
+                condition=condition,
+                risk_score=round(risk_score, 2),
+                priority_level=priority_level,
+                priority_score=round(priority_score, 2),
+                days_to_failure=days_until_failure,
+                reported_date=reported_date,
+                status="pending",
+            )
+        )
+
+    issues.sort(key=lambda x: x.priority_score, reverse=True)
+    return issues
 
 
 @router.post("/issues/{school_id}/approve")

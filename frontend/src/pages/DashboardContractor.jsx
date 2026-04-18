@@ -2,31 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
-import { LogOut, Briefcase, Hammer, CheckCircle, Clock, MapPin, Camera } from 'lucide-react';
+import { LogOut, CheckCircle, Clock, MapPin, Camera } from 'lucide-react';
 
 const DashboardContractor = () => {
   const { user, logout } = useAuth();
   const { isDark } = useTheme();
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
   const [workOrders, setWorkOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
   const [completionData, setCompletionData] = useState({
     notes: '',
     photo: null,
     latitude: '',
-    longitude: ''
+    longitude: '',
+    photoUrl: ''
   });
 
   useEffect(() => {
     const fetchWorkOrders = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/v1/contractor/work-orders', {
+        const contractorName = user?.name || '';
+        const response = await fetch(`${API_BASE}/api/v1/work-orders?contractor=${encodeURIComponent(contractorName)}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
           }
         });
         const data = await response.json();
-        setWorkOrders(data.work_orders || []);
+        const orders = Array.isArray(data) ? data : (data.workOrders || data.work_orders || []);
+        setWorkOrders(orders);
       } catch (error) {
         console.error('Error fetching work orders:', error);
       } finally {
@@ -35,7 +40,7 @@ const DashboardContractor = () => {
     };
 
     fetchWorkOrders();
-  }, []);
+  }, [API_BASE, user?.name]);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -46,26 +51,55 @@ const DashboardContractor = () => {
     }
   };
 
+  const getPriorityColor = (level) => {
+    switch (level) {
+      case 'Critical': return isDark ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800';
+      case 'High': return isDark ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800';
+      case 'Medium': return isDark ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800';
+      case 'Low': return isDark ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800';
+      default: return isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleStartWork = async (order) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/work-orders/${order.id}/start`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      if (response.ok) {
+        setWorkOrders(workOrders.map((wo) =>
+          wo.id === order.id ? { ...wo, status: 'In Progress' } : wo
+        ));
+      }
+    } catch (error) {
+      console.error('Error starting work:', error);
+    }
+  };
+
   const handleCompleteWork = async () => {
     if (!selectedOrder) return;
 
-    const formData = new FormData();
-    formData.append('work_order_id', selectedOrder.id);
-    formData.append('contractor_id', user?.id);
-    formData.append('notes', completionData.notes);
-    formData.append('latitude', completionData.latitude);
-    formData.append('longitude', completionData.longitude);
-    if (completionData.photo) {
-      formData.append('photo', completionData.photo);
-    }
+    const gpsLocation = completionData.latitude && completionData.longitude
+      ? `${completionData.latitude}, ${completionData.longitude}`
+      : '';
+    const payload = {
+      work_id: selectedOrder.id,
+      photo_url: completionData.photoUrl || (completionData.photo ? completionData.photo.name : ''),
+      gps_location: gpsLocation || null,
+      notes: completionData.notes
+    };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/contractor/complete-work', {
+      const response = await fetch(`${API_BASE}/api/v1/complete-work`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },
-        body: formData
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -73,7 +107,9 @@ const DashboardContractor = () => {
           wo.id === selectedOrder.id ? { ...wo, status: 'Completed' } : wo
         ));
         setSelectedOrder(null);
-        setCompletionData({ notes: '', photo: null, latitude: '', longitude: '' });
+        setCompletionData({ notes: '', photo: null, latitude: '', longitude: '', photoUrl: '' });
+        setSuccessMessage('Work completed successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (error) {
       console.error('Error completing work:', error);
@@ -147,47 +183,81 @@ const DashboardContractor = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Work Orders List */}
           <div className={`lg:col-span-2 rounded-lg shadow-lg p-6 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Assigned Work Orders
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Assigned Work Orders
+              </h2>
+              {successMessage && (
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDark ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'}`}>
+                  {successMessage} ✅
+                </span>
+              )}
+            </div>
 
             {loading ? (
               <div className="flex justify-center py-12">
                 <Clock className={`animate-spin ${isDark ? 'text-gray-400' : 'text-gray-500'}`} size={40} />
               </div>
             ) : (
-              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              <div className="overflow-x-auto">
                 {workOrders.length === 0 ? (
                   <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>No work orders assigned</p>
                 ) : (
-                  workOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      onClick={() => setSelectedOrder(order)}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition ${
-                        selectedOrder?.id === order.id
-                          ? isDark ? 'bg-blue-900 border-blue-500' : 'bg-blue-50 border-blue-500'
-                          : isDark ? 'bg-gray-700 border-gray-600 hover:border-orange-500' : 'bg-gray-50 border-gray-200 hover:border-orange-500'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {order.school_id}
-                          </p>
-                          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {order.category}
-                          </p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </div>
-                      <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {order.issue || 'Maintenance work required'}
-                      </p>
-                    </div>
-                  ))
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className={`${isDark ? 'text-gray-400' : 'text-gray-600'} border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <th className="py-2 text-left">School</th>
+                        <th className="py-2 text-left">Category</th>
+                        <th className="py-2 text-left">Priority</th>
+                        <th className="py-2 text-left">Status</th>
+                        <th className="py-2 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workOrders.map((order) => (
+                        <tr
+                          key={order.id}
+                          className={`border-b ${isDark ? 'border-gray-700 hover:bg-gray-700/40' : 'border-gray-200 hover:bg-gray-50'} cursor-pointer`}
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          <td className={`py-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>{order.school_id}</td>
+                          <td className={`py-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{order.category}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityColor(order.priority_level || 'Medium')}`}>
+                              {order.priority_level || 'Medium'}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="py-3 flex gap-2">
+                            {order.status === 'Pending' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartWork(order);
+                                }}
+                                className={`px-3 py-1 rounded text-xs font-semibold ${isDark ? 'bg-blue-700 text-blue-100 hover:bg-blue-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                              >
+                                Start Work
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedOrder(order);
+                              }}
+                              className={`px-3 py-1 rounded text-xs font-semibold ${isDark ? 'bg-green-700 text-green-100 hover:bg-green-600' : 'bg-green-500 text-white hover:bg-green-600'}`}
+                            >
+                              Mark Completed
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
             )}
@@ -238,7 +308,14 @@ const DashboardContractor = () => {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setCompletionData({ ...completionData, photo: e.target.files[0] })}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        setCompletionData({
+                          ...completionData,
+                          photo: file,
+                          photoUrl: file ? URL.createObjectURL(file) : ''
+                        });
+                      }}
                       className="hidden"
                       id="photo-upload"
                     />

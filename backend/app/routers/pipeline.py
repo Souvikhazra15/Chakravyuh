@@ -4,8 +4,6 @@ import io
 import csv
 from datetime import datetime
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import IsolationForest
 from pydantic import BaseModel
 
 from ..database import get_db
@@ -22,6 +20,7 @@ from ..utils import (
     predict_failure,
     generate_prediction_reason,
     calculate_priority_score,
+    calculate_priority_level,
     get_last_n_reports,
     hybrid_anomaly_detection,
     compute_rolling_features,
@@ -255,61 +254,6 @@ def normalize_condition_score(raw_condition: str) -> float:
         "critical": 0.95
     }
     return condition_map.get(raw_condition.lower(), 0.5)
-
-
-def calculate_priority_level(category: str, risk_score: float) -> tuple:
-    """
-    Calculate priority level based on:
-    1. Risk severity (risk_score: 0-1 scale)
-    2. Student impact (category-based weights)
-    
-    Impact Weights:
-    - Girls' toilet: 5.0 (highest - safety/dignity)
-    - Structural: 5.0 (highest - safety critical)
-    - Electrical: 4.5 (very high - electrical hazard)
-    - Classroom: 4.0 (medium - affects learning)
-    - Plumbing: 3.5 (medium - health hazard)
-    - Other: 2.0 (lower - operational)
-    
-    Returns: (priority_score, priority_level)
-    """
-    impact_weights = {
-        'girls_toilet': 5.0,
-        'classroom': 4.0,
-        'electrical': 4.5,
-        'plumbing': 3.5,
-        'structural': 5.0,
-        'other': 2.0
-    }
-    
-    category_lower = str(category).lower().strip()
-    if 'girl' in category_lower or 'toilet' in category_lower:
-        weight = impact_weights['girls_toilet']
-    elif 'class' in category_lower or 'room' in category_lower:
-        weight = impact_weights['classroom']
-    elif 'electrical' in category_lower:
-        weight = impact_weights['electrical']
-    elif 'plumbing' in category_lower:
-        weight = impact_weights['plumbing']
-    elif 'structural' in category_lower:
-        weight = impact_weights['structural']
-    else:
-        weight = impact_weights['other']
-    
-    # Calculate priority score (0-5 scale)
-    priority_score = float(risk_score * weight)
-    
-    # Assign priority level based on thresholds
-    if priority_score >= 3.5:
-        priority_level = 'Critical'
-    elif priority_score >= 2.5:
-        priority_level = 'High'
-    elif priority_score >= 1.5:
-        priority_level = 'Medium'
-    else:
-        priority_level = 'Low'
-    
-    return priority_score, priority_level
 
 
 def calculate_csv_features(records: List[Dict]) -> Dict:

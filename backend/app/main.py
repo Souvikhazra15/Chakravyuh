@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 from .database import init_db, close_db
-from .routers import report, risk, prediction, explain, deo, work, history, pipeline, auth, school
+from .routers import report, risk, prediction, explain, deo, work, history, pipeline, auth, school, principal, analyze
 
 load_dotenv()
 
@@ -37,12 +37,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS Middleware - Must be first/outermost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "*"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    max_age=3600,
 )
 
 app.include_router(report.router)
@@ -51,10 +61,14 @@ app.include_router(prediction.router)
 app.include_router(explain.router)
 app.include_router(deo.router)
 app.include_router(work.router)
+app.include_router(work.work_orders_router)
+app.include_router(work.assign_router)
 app.include_router(history.router)
 app.include_router(pipeline.router)
 app.include_router(auth.router)
 app.include_router(school.router)
+app.include_router(principal.router)
+app.include_router(analyze.router)
 
 
 @app.get("/", tags=["health"])

@@ -12,6 +12,51 @@ from ..utils import (
 router = APIRouter(prefix="/api/v1/prediction", tags=["predictions"])
 
 
+@router.get("", response_model=list[PredictionResponse])
+async def get_predictions(
+    school_id: int = 1,
+    db = Depends(get_db),
+):
+    """Get failure predictions for all categories (default school_id=1)."""
+    categories = ["plumbing", "electrical", "structural"]
+    predictions = []
+
+    for category in categories:
+        reports = await db.report.find_many(
+            where={"school_id": school_id, "category": category},
+        )
+
+        if not reports:
+            predictions.append(
+                PredictionResponse(
+                    category=category,
+                    prediction="Safe",
+                    days_until_failure=None,
+                    reason="no_data",
+                    risk_score=0.0,
+                )
+            )
+            continue
+
+        scores = get_last_n_reports(reports, 4)
+        risk_score = calculate_risk_score(scores)
+        trend = calculate_trend(scores)
+        prediction, days = predict_failure(risk_score)
+        reason = generate_prediction_reason(risk_score, trend, scores)
+
+        predictions.append(
+            PredictionResponse(
+                category=category,
+                prediction=prediction,
+                days_until_failure=days,
+                reason=reason,
+                risk_score=risk_score,
+            )
+        )
+
+    return predictions
+
+
 @router.get("/{school_id}", response_model=list[PredictionResponse])
 async def get_predictions_for_school(
     school_id: int,
@@ -24,7 +69,6 @@ async def get_predictions_for_school(
     for category in categories:
         reports = await db.report.find_many(
             where={"school_id": school_id, "category": category},
-            order_by={"timestamp": "desc"},
         )
 
         if not reports:
@@ -67,7 +111,6 @@ async def get_prediction_for_category(
     """Get failure prediction for a specific category."""
     reports = await db.report.find_many(
         where={"school_id": school_id, "category": category.lower()},
-        order_by={"timestamp": "desc"},
     )
 
     if not reports:

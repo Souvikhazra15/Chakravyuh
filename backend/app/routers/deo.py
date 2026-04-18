@@ -25,9 +25,7 @@ async def get_priority_queue(db = Depends(get_db)):
     Sorted by priority_score descending (highest priority first).
     """
     # Fetch all reports from Prisma
-    all_reports = await db.report.find_many(
-        order_by={"timestamp": "desc"}
-    )
+    all_reports = await db.report.find_many()
 
     school_categories = {}
     for report in all_reports:
@@ -101,8 +99,7 @@ async def get_priority_queue_for_school(
     Filtered and sorted by priority.
     """
     all_reports = await db.report.find_many(
-        where={"school_id": school_id},
-        order_by={"timestamp": "desc"}
+        where={"school_id": school_id}
     )
 
     school_categories = {}

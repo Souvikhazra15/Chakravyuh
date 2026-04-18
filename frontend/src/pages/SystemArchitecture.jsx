@@ -5,6 +5,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 
 export default function SystemArchitecture() {
   const { isDark } = useTheme();
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
   const [csvFile, setCsvFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pipelineResult, setPipelineResult] = useState(null);
@@ -88,7 +89,7 @@ export default function SystemArchitecture() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/pipeline/process-csv', {
+      const response = await fetch(`${API_BASE}/api/v1/pipeline/process-csv`, {
         method: 'POST',
         body: formData,
         headers: {
