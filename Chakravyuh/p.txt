@@ -1,8 +1,0 @@
-http://127.0.0.1:8000/
-
-TEST_CREDENTIALS = [
-    {"email": "peon@test.com", "password": "123456", "role": "peon"},
-    {"email": "principal@test.com", "password": "123456", "role": "principal"},
-    {"email": "deo@test.com", "password": "123456", "role": "deo"},
-    {"email": "contractor@test.com", "password": "123456", "role": "contractor"},
-]
