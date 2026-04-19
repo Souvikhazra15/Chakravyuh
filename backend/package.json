@@ -1,7 +1,7 @@
 {
-  "name": "chakravyuh-prisma",
+  "name": "shalarakshak-prisma",
   "version": "1.0.0",
-  "description": "Prisma setup for Chakravyuh",
+  "description": "Prisma setup for ShalaRakshak",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

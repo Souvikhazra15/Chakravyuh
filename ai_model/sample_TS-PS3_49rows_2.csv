@@ -1,0 +1,50 @@
+school_id,district,block,school_type,girls_school,num_students,building_age,material_type,weather_zone,category,week_number,condition_score,issue_flag,water_leak,wiring_exposed,crack_width_mm,toilet_functional_ratio,power_outage_hours_weekly,roof_leak_flag,photo_uploaded,days_to_failure,failure_within_30_days,failure_within_60_days,priority_score,repair_done,days_since_repair,contractor_delay_days,sla_breach
+1839,Kutch,Block C,Secondary,1,430,19,Mixed,Heavy Rain,electrical,5,3,1,1,1,2.04,0.98,21,1,1,58.43734459067044,0,1,24.3,0,,22,1
+2076,Kutch,Block C,Primary,1,426,5,Temporary,Heavy Rain,plumbing,1,1,0,0,0,15.86,0.57,34,0,1,84.65094589871076,0,0,24.259999999999998,0,,1,0
+2066,Surat,Block A,Primary,0,1385,14,Brick,Dry,plumbing,8,1,1,1,1,11.16,0.6,16,1,1,99.98318303053998,0,0,13.85,0,,20,1
+1154,Dahod,Block C,Primary,0,1221,53,Mixed,Coastal,electrical,11,1,0,0,0,16.1,0.78,10,0,1,51.35240893876799,0,1,12.21,0,,18,1
+1664,Surat,Block B,Primary,0,1263,49,Temporary,Dry,electrical,11,3,0,1,1,18.27,0.84,22,1,1,20.25517878076194,1,1,62.63,0,,7,0
+1211,Surat,Block B,Primary,0,57,18,RCC,Coastal,electrical,7,5,0,0,1,2.03,0.61,19,1,0,47.2087720685222,0,1,0.57,1,5.0,11,1
+2294,Kutch,Block A,Primary,0,472,34,Mixed,Tribal,electrical,2,5,1,1,1,7.51,0.29,5,0,1,42.90129263193136,0,1,4.72,0,,10,1
+2525,Dahod,Block C,Primary,0,628,51,Mixed,Tribal,plumbing,1,5,1,1,1,9.28,0.14,36,1,1,10.902411810532865,1,1,56.28,0,,3,0
+1202,Dahod,Block A,Secondary,0,1095,9,RCC,Tribal,structural,4,2,1,0,1,9.13,0.25,30,0,0,76.93618142989168,0,0,10.95,0,,15,1
+1893,Kutch,Block B,Secondary,0,278,30,Brick,Tribal,plumbing,2,1,0,1,0,13.76,0.04,24,0,1,63.57986210321077,0,0,2.78,1,15.0,2,0
+2649,Dahod,Block C,Secondary,1,1377,47,RCC,Dry,electrical,5,3,1,1,1,19.36,0.44,7,0,1,22.555871143830032,1,1,83.77,1,45.0,27,1
+1434,Surat,Block C,Primary,0,1106,9,Brick,Heavy Rain,plumbing,1,5,0,0,0,0.84,0.01,22,1,1,31.100280841933557,0,1,11.06,0,,24,1
+1517,Kutch,Block A,Primary,0,174,56,Mixed,Coastal,structural,9,3,0,1,0,19.03,0.45,29,0,1,9.93243230321646,1,1,51.74,0,,11,1
+1131,Ahmedabad,Block C,Secondary,0,577,16,RCC,Coastal,electrical,10,4,0,1,1,0.44,0.24,16,0,1,46.9766121924399,0,1,5.77,0,,4,0
+2658,Kutch,Block B,Primary,1,295,26,Mixed,Coastal,electrical,3,1,1,1,0,8.26,0.79,2,1,1,75.85443244848564,0,0,22.95,0,,0,0
+1927,Surat,Block C,Secondary,1,465,2,Brick,Heavy Rain,electrical,5,3,0,0,1,19.71,0.94,35,1,1,36.321162531595256,0,1,24.65,0,,12,1
+2696,Ahmedabad,Block C,Primary,0,1137,59,RCC,Coastal,structural,2,2,1,1,0,9.68,0.06,20,0,1,43.00702627625342,0,1,11.37,0,,11,1
+2606,Dahod,Block C,Primary,0,70,37,Brick,Tribal,plumbing,8,1,0,0,0,15.92,0.82,30,0,0,68.83716844681706,0,0,0.7,0,,17,1
+2431,Ahmedabad,Block C,Primary,0,160,39,Brick,Coastal,structural,5,4,0,0,0,19.38,0.06,1,1,1,-12.072691090310853,1,1,51.6,0,,12,1
+1597,Ahmedabad,Block A,Primary,0,277,13,RCC,Dry,plumbing,3,2,0,1,1,12.99,0.39,13,0,1,34.501611905716864,0,1,2.77,0,,4,0
+2575,Kutch,Block A,Secondary,0,367,37,RCC,Coastal,structural,11,3,1,1,0,1.67,0.7,20,1,1,69.54181666753115,0,0,3.67,0,,0,0
+2067,Dahod,Block B,Secondary,0,886,56,RCC,Coastal,structural,8,5,0,1,1,0.67,0.67,34,0,1,21.289424980127386,1,1,58.86,0,,24,1
+1797,Kutch,Block A,Secondary,1,325,18,Mixed,Heavy Rain,electrical,6,3,0,0,0,10.57,0.55,0,1,0,67.46942058891865,0,0,23.25,0,,6,0
+1055,Ahmedabad,Block B,Primary,0,765,3,Mixed,Heavy Rain,plumbing,11,1,1,0,1,6.14,0.33,24,0,0,82.5867588342678,0,0,7.65,0,,29,1
+1493,Ahmedabad,Block A,Secondary,1,512,23,RCC,Dry,structural,6,2,0,0,1,17.36,0.66,16,0,1,40.13536599322434,0,1,25.12,1,27.0,2,0
+2203,Kutch,Block A,Primary,1,1128,40,Temporary,Heavy Rain,structural,5,5,1,0,1,3.64,0.46,34,0,1,20.91090213544108,1,1,81.28,1,37.0,4,0
+1895,Dahod,Block A,Primary,0,1311,3,Mixed,Heavy Rain,structural,4,3,0,0,0,18.97,0.49,6,1,1,29.57058764100199,1,1,63.11,0,,26,1
+2094,Surat,Block B,Primary,0,163,43,Temporary,Dry,structural,4,5,1,0,1,2.52,0.51,34,0,0,34.7399863795254,0,1,1.63,0,,4,0
+1957,Dahod,Block C,Primary,1,50,2,Mixed,Coastal,electrical,8,5,0,0,0,1.38,0.57,8,0,1,64.06120339674895,0,0,20.5,0,,11,1
+1324,Ahmedabad,Block C,Primary,0,1334,36,RCC,Coastal,structural,6,3,0,1,0,6.68,0.36,34,1,1,24.792285645612743,1,1,63.34,0,,11,1
+2130,Ahmedabad,Block B,Secondary,0,211,13,Mixed,Dry,structural,9,5,1,0,1,4.17,0.49,3,0,0,44.667436328453924,0,1,2.11,0,,17,1
+2181,Surat,Block C,Secondary,1,326,2,RCC,Coastal,plumbing,7,5,0,1,1,7.31,0.94,8,0,1,15.386284368775227,1,1,73.26,0,,29,1
+1620,Surat,Block B,Primary,0,270,41,Temporary,Heavy Rain,electrical,10,4,0,1,1,15.49,0.21,33,1,1,-8.135946601034568,1,1,52.7,1,5.0,13,1
+1549,Kutch,Block A,Primary,1,316,46,RCC,Coastal,plumbing,12,3,0,1,0,2.95,0.4,0,1,1,57.267411198180476,0,1,23.16,0,,18,1
+2563,Kutch,Block C,Secondary,1,1330,16,RCC,Dry,plumbing,2,5,0,0,1,1.03,0.42,22,1,0,43.40968579961825,0,1,33.3,0,,2,0
+2941,Surat,Block C,Secondary,1,1232,32,Brick,Coastal,plumbing,11,1,0,0,1,3.71,0.75,24,1,0,75.92426242610331,0,0,32.32,1,11.0,24,1
+1308,Surat,Block C,Primary,0,1136,40,Mixed,Tribal,structural,6,5,0,1,1,16.27,0.37,1,0,1,-3.755060085233774,1,1,61.36,1,47.0,7,0
+2785,Surat,Block B,Primary,1,1057,7,Temporary,Heavy Rain,structural,7,3,0,1,1,2.4,0.8,6,1,1,5.305937093017457,1,1,80.57,1,51.0,17,1
+2467,Dahod,Block C,Primary,0,600,42,RCC,Heavy Rain,structural,12,3,0,0,1,12.61,0.3,7,1,1,44.18586189003035,0,1,6.0,0,,17,1
+2893,Surat,Block A,Secondary,0,63,29,Mixed,Dry,plumbing,7,4,0,1,1,15.77,0.89,2,0,1,-2.48481168384024,1,1,50.63,0,,11,1
+1364,Ahmedabad,Block A,Primary,0,94,45,Temporary,Coastal,structural,3,2,1,0,1,18.42,0.59,10,1,0,19.170111230949985,1,1,50.94,0,,0,0
+2582,Ahmedabad,Block C,Primary,0,1174,41,Brick,Coastal,structural,11,4,0,0,0,4.78,0.69,5,1,0,16.813964837787793,1,1,61.74,0,,15,1
+1679,Surat,Block A,Secondary,1,1194,48,Brick,Dry,electrical,8,4,1,0,1,14.0,0.72,8,0,0,11.099711249198247,1,1,81.94,0,,17,1
+2454,Surat,Block C,Secondary,0,437,9,Temporary,Heavy Rain,electrical,12,5,0,1,1,4.24,0.2,0,1,1,50.267266914786035,0,1,4.37,0,,4,0
+1216,Kutch,Block A,Primary,1,334,39,RCC,Dry,plumbing,8,1,0,1,0,11.91,0.85,27,1,0,50.409790397573026,0,1,23.34,0,,17,1
+1533,Ahmedabad,Block B,Primary,0,1384,25,Mixed,Coastal,electrical,6,5,0,0,1,10.41,0.28,34,0,1,18.78925803928476,1,1,63.84,0,,10,1
+1573,Dahod,Block B,Primary,1,471,49,Mixed,Heavy Rain,plumbing,8,4,1,1,1,7.86,0.92,37,0,0,14.115201360269907,1,1,74.71,0,,18,1
+2369,Dahod,Block B,Primary,0,679,27,Mixed,Heavy Rain,electrical,3,4,0,1,0,16.63,0.07,16,0,1,12.61521035077822,1,1,56.79,0,,22,1
+1475,Ahmedabad,Block A,Secondary,0,706,32,Temporary,Coastal,structural,10,1,0,0,1,11.95,0.43,25,0,1,79.7520690852785,0,0,7.06,0,,14,1

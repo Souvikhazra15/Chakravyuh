@@ -32,7 +32,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Chakravyuh
+              ShalaRakshak
             </div>
             <div className="hidden md:flex gap-8">
               <a href="#features" className={`transition ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}>Features</a>
@@ -311,7 +311,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
-              <div className="text-xl font-bold text-white mb-4">Chakravyuh</div>
+              <div className="text-xl font-bold text-white mb-4">ShalaRakshak</div>
               <p className="text-sm">Predictive maintenance for smarter schools</p>
             </div>
             <div>
@@ -340,7 +340,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className={`border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4 ${isDark ? 'border-gray-800' : 'border-gray-800'}`}>
-            <p className="text-sm">© 2026 Chakravyuh. All rights reserved.</p>
+            <p className="text-sm">© 2026 ShalaRakshak. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition">Twitter</a>
               <a href="#" className="hover:text-white transition">LinkedIn</a>

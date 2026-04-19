@@ -1,4 +1,4 @@
-# Chakravyuh Landing Page
+# ShalaRakshak Landing Page
 
 AI-Powered Predictive Maintenance System for Government Schools
 

@@ -15,7 +15,7 @@ async def test_api():
     """Test all API endpoints."""
     async with httpx.AsyncClient(base_url=BASE_URL) as client:
         print("=" * 60)
-        print("Chakravyuh API Test Suite")
+        print("ShalaRakshak API Test Suite")
         print("=" * 60)
 
         # Health Check

@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Chakravyuh ML Pipeline - cURL API Examples
+# ShalaRakshak ML Pipeline - cURL API Examples
 # Quick testing of all endpoints without running Python code
 
 BASE_URL="http://localhost:8000/api/v1"
 
 echo "=========================================="
-echo "Chakravyuh ML Pipeline - API Examples"
+echo "ShalaRakshak ML Pipeline - API Examples"
 echo "=========================================="
 echo ""
 

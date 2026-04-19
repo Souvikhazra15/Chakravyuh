@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import Chatbot from '../components/Chatbot';
 import { LogOut, ChevronDown, X } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -696,6 +697,8 @@ const DashboardDEO = () => {
         onClose={() => setIsSchoolOpen(false)}
         school={selectedSchool}
       />
+
+      <Chatbot dashboard="DEO Dashboard" />
     </div>
   );
 };

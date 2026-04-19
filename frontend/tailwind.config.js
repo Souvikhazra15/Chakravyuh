@@ -20,6 +20,9 @@ export default {
         'lg': '0 10px 30px rgba(0, 0, 0, 0.1)',
         'xl': '0 20px 40px rgba(0, 0, 0, 0.15)',
       },
+      zIndex: {
+        'max': '9999',
+      },
     },
   },
   plugins: [],

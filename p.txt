@@ -6,3 +6,69 @@ TEST_CREDENTIALS = [
     {"email": "deo@test.com", "password": "123456", "role": "deo"},
     {"email": "contractor@test.com", "password": "123456", "role": "contractor"},
 ]
+
+1. PRIORITY / DEO QUESTIONS (MOST IMPORTANT)
+“Which schools need immediate attention?”
+“Show top 5 critical issues”
+“Which category has the highest risk?”
+“Which issues should I prioritize first?”
+“Give me the most urgent maintenance tasks”
+
+👉 Use during DEO demo
+
+🔵 2. EXPLANATION QUESTIONS (VERY IMPRESSIVE)
+“Why is this school marked critical?”
+“Explain this prediction”
+“Why is plumbing high but not critical?”
+“What factors increase priority score?”
+“How is priority calculated?”
+
+👉 Shows Explainable AI
+
+🟡 3. SUMMARY QUESTIONS
+“Give me system overview”
+“How many critical issues are there?”
+“What is the distribution of issues?”
+“Which category has most problems?”
+“Show total issues breakdown”
+
+👉 Good for dashboard summary
+
+🟢 4. ACTION / DECISION QUESTIONS
+“What should the DEO do next?”
+“Which issues should be fixed first?”
+“Suggest actions for critical issues”
+“Which schools should be assigned contractors first?”
+
+👉 THIS = decision intelligence (very powerful)
+
+🟠 5. CONTRACTOR QUESTIONS
+“What tasks are assigned to me?”
+“Which tasks are pending?”
+“Which task is most urgent for me?”
+“What should I complete first?”
+
+👉 Use in contractor dashboard
+
+🟣 6. PRINCIPAL QUESTIONS
+“Which reports are pending approval?”
+“Which issues are most severe in my school?”
+“What trends are observed in submissions?”
+🧨 BEST 5 QUESTIONS (USE IN DEMO)
+
+If you only ask these → you WIN:
+
+“Show top critical issues”
+“Why is this issue critical?”
+“What should the DEO do next?”
+“Give system summary”
+“Which tasks should be prioritized first?”
+⚡ PRO TIP (VERY IMPORTANT)
+
+Add buttons in UI:
+
+👉 Quick actions:
+
+Top Critical Issues
+System Summary
+Suggested Actions

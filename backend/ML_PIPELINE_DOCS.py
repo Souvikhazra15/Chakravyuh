@@ -1,5 +1,5 @@
 """
-Chakravyuh - ML Pipeline API Documentation
+ShalaRakshak - ML Pipeline API Documentation
 AI-Powered Predictive Maintenance System for Government Schools
 
 ARCHITECTURE:

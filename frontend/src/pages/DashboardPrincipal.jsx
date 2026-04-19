@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import Chatbot from '../components/Chatbot';
 import { LogOut, BarChart3, AlertTriangle, CheckCircle, Upload, Filter, Check, X, Clock3, Zap } from 'lucide-react';
 
 const DashboardPrincipal = () => {
@@ -21,7 +22,13 @@ const DashboardPrincipal = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisMessage, setAnalysisMessage] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
-  const [analysisSummary, setAnalysisSummary] = useState(null);
+  const [analysisSummary, setAnalysisSummary] = useState({
+    total_issues: 0,
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0
+  });
   const [analysisCompleted, setAnalysisCompleted] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
   const [submittedFiles, setSubmittedFiles] = useState([]);
@@ -37,9 +44,8 @@ const DashboardPrincipal = () => {
         // Use school_id from user context or default to 1
         const schoolId = user?.school_id || 1;
 
-        const [submissionsRes, predictionsRes, workOrdersRes, filesRes] = await Promise.all([
+        const [submissionsRes, workOrdersRes, filesRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/principal/submissions`, { headers }).catch(() => null),
-          fetch(`${API_BASE}/api/v1/prediction?school_id=${schoolId}`, { headers }).catch(() => null),
           fetch(`${API_BASE}/api/v1/work-orders`, { headers }).catch(() => null),
           fetch(`${API_BASE}/api/v1/peon/submitted-files`, { headers }).catch(() => null),
         ]);
@@ -51,20 +57,8 @@ const DashboardPrincipal = () => {
           setSubmissions([]);
         }
 
-        if (predictionsRes?.ok) {
-          const predData = await predictionsRes.json();
-          const formattedPreds = (Array.isArray(predData) ? predData : predData.predictions || []).map((p, idx) => ({
-            id: `PRED${String(idx + 1).padStart(3, '0')}`,
-            category: p.category,
-            issue: p.prediction,
-            risk_score: p.risk_score,
-            status: 'pending',
-            confidence: Math.round(p.risk_score * 100)
-          }));
-          setPredictions(formattedPreds);
-        } else {
-          setPredictions([]);
-        }
+        // DO NOT fetch predictions on page load - only show analysis results
+        setPredictions([]);
 
         if (workOrdersRes?.ok) {
           const woData = await workOrdersRes.json();
@@ -100,6 +94,22 @@ const DashboardPrincipal = () => {
 
     fetchData();
   }, [API_BASE, user]);
+
+  // DEBUG: Log analysisSummary whenever it changes
+  useEffect(() => {
+    if (analysisSummary) {
+      console.log('🔥 ANALYSISSUMMARY STATE UPDATED:', {
+        total_issues: analysisSummary.total_issues,
+        critical: analysisSummary.critical,
+        high: analysisSummary.high,
+        medium: analysisSummary.medium,
+        low: analysisSummary.low,
+        fullObject: JSON.stringify(analysisSummary, null, 2)
+      });
+    } else {
+      console.log('🔥 ANALYSISSUMMARY STATE is null/falsy');
+    }
+  }, [analysisSummary]);
 
   const getPriorityColor = (level) => {
     switch(level) {
@@ -247,10 +257,12 @@ const DashboardPrincipal = () => {
         return {
           school_id: parseInt(row.school_id) || schoolId,
           category: String(category).trim().toLowerCase(),
-          condition_score: condition_score, // Pass as-is (null or number)
+          condition_score: condition_score,
           condition: String(condition).trim()
         };
       });
+
+      console.log('📊 Sending analysis request:', { schoolId, recordCount: transformedData.length, records: transformedData.slice(0, 3) });
 
       const response = await fetch(`${API_BASE}/api/v1/analyze`, {
         method: 'POST',
@@ -264,12 +276,36 @@ const DashboardPrincipal = () => {
         })
       });
 
+      console.log('📥 Analysis response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ API error:', response.status, errorText);
         throw new Error(`API returned status ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
+      
+      console.log('✅ FULL Analysis response JSON:', JSON.stringify(data, null, 2));
+      
+      console.log('✅ Analysis response:', {
+        summary: data.summary,
+        dataCount: data.data?.length,
+        distribution: data.distribution,
+        firstFewItems: data.data?.slice(0, 3)
+      });
+      
+      // DEBUG: Log detailed summary fields
+      console.log('DEBUG - Summary fields received:', {
+        total_issues: data.summary?.total_issues,
+        critical: data.summary?.critical,
+        high: data.summary?.high,
+        medium: data.summary?.medium,
+        low: data.summary?.low,
+        allFields: data.summary,
+        summaryType: typeof data.summary,
+        summaryKeys: Object.keys(data.summary || {})
+      });
       
       // Validate response structure
       if (!data.summary) {
@@ -277,7 +313,11 @@ const DashboardPrincipal = () => {
       }
 
       // 7. FIX FRONTEND MAPPING
+      console.log('DEBUG - BEFORE setState, setting analysisSummary to:', data.summary);
       setAnalysisSummary(data.summary);
+      
+      // DEBUG: Log state update (note: this logs the OLD state, not new!)
+      console.log('DEBUG - State update CALLED with summary:', data.summary);
 
       const formatAnalysisText = (summary, rows) => {
         const total = summary?.total_issues ?? 0;
@@ -350,15 +390,20 @@ const DashboardPrincipal = () => {
       setPredictions(analyzedPredictions);
       setAnalysisText(formatAnalysisText(data.summary, data.data || []));
       
-      setAnalysisMessage('Analysis complete. Predictions generated from real data.');
+      setAnalysisMessage('✅ Analysis complete. Predictions generated from real data.');
       setAnalysisCompleted(true);
+
+      console.log('📈 Updated state:', {
+        predictionsCount: analyzedPredictions.length,
+        summary: data.summary
+      });
 
       // Clear message after 4 seconds
       setTimeout(() => {
         setAnalysisMessage(null);
       }, 4000);
     } catch (error) {
-      console.error('Analysis error:', error);
+      console.error('❌ Analysis error:', error);
       setAnalysisError(`Analysis failed: ${error.message}. Check CSV format.`);
       setAnalysisText('');
 
@@ -976,6 +1021,8 @@ const DashboardPrincipal = () => {
           )}
         </div>
       </div>
+
+      <Chatbot dashboard="Principal Dashboard" />
     </div>
   );
 };

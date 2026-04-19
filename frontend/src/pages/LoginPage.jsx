@@ -64,7 +64,7 @@ const LoginPage = () => {
       }`}>
         <div className="text-center mb-8">
           <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Chakravyuh
+            ShalaRakshak
           </h1>
           <p className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Predictive Maintenance System

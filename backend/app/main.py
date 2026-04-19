@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 from .database import init_db, close_db
-from .routers import report, risk, prediction, explain, deo, work, history, pipeline, auth, school, principal, analyze, peon
+from .routers import report, risk, prediction, explain, deo, work, history, pipeline, auth, school, principal, analyze, peon, chat
 
 load_dotenv()
 
@@ -70,13 +70,14 @@ app.include_router(school.router)
 app.include_router(principal.router)
 app.include_router(analyze.router)
 app.include_router(peon.router)
+app.include_router(chat.router)
 
 
 @app.get("/", tags=["health"])
 async def root():
     """Health check and API info."""
     return {
-        "message": "Chakravyuh API is running",
+        "message": "ShalaRakshak API is running",
         "environment": ENVIRONMENT,
         "version": "1.0.0",
         "docs": "/docs",

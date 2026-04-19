@@ -23,10 +23,8 @@ const DashboardContractor = () => {
   useEffect(() => {
     const fetchWorkOrders = async () => {
       try {
-        const contractorName = user?.name || '';
-        if (!contractorName) return;
-        
-        const response = await fetch(`${API_BASE}/api/v1/work-orders?contractor=${encodeURIComponent(contractorName)}`, {
+        // Fetch ALL work orders (no contractor filter)
+        const response = await fetch(`${API_BASE}/api/v1/work-orders`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
           }
@@ -46,7 +44,7 @@ const DashboardContractor = () => {
     // Auto-refresh work orders every 10 seconds
     const intervalId = setInterval(fetchWorkOrders, 10000);
     return () => clearInterval(intervalId);
-  }, [API_BASE, user?.name]);
+  }, [API_BASE]);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -144,7 +142,7 @@ const DashboardContractor = () => {
       <nav className={`${isDark ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'} shadow-lg`}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Chakravyuh - Contractor
+            ShalaRakshak - Contractor
           </h1>
           <div className="flex items-center gap-4">
             <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>{user?.name}</span>
@@ -192,10 +190,10 @@ const DashboardContractor = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  Assigned Work Orders
+                  All Assigned Work Orders
                 </h2>
                 <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                  Filtering by: <strong>{user?.name || 'Unknown'}</strong>
+                  General Dashboard - All Workers
                 </p>
               </div>
               <div className="flex gap-2">
