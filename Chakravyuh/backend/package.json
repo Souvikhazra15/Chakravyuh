@@ -1,0 +1,17 @@
+{
+  "name": "chakravyuh-prisma",
+  "version": "1.0.0",
+  "description": "Prisma setup for Chakravyuh",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1"
+  },
+  "devDependencies": {
+    "prisma": "5.17.0"
+  }
+}
